@@ -1,0 +1,80 @@
+<html>
+<head>
+    <title>Тестовое задание WebSockets</title>
+    <meta charset="utf-8">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+</head>
+<body>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+<div class="container" id="auth">
+    <div class="row col-sm-4 offset-sm-4 mt-3">
+    <form action="#">
+        <div class="form-group">
+            <input type="username" class="form-control" id="username" placeholder="Ваше имя">
+        </div>
+        <button type="button" class="btn btn-primary" id="enter">Войти</button>
+    </form>
+    </div>
+</div>
+<div class="container d-none" id="chat">
+    <div class="row">
+        <div class="col-sm-3">
+            <strong>Online:</strong>
+            <ul id="online"></ul>
+        </div>
+        <div class="col-sm-9 mt-2">
+            <div id="messages" style="height: 300px; width: 100%; border:1px solid gray; overflow: scroll; "></div>
+            <input type="text" id="message"> <button type="button" class="btn btn-primary" id="send">Отправить</button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    $( document ).ready(function() {
+        const socket = new WebSocket('ws://localhost:9191');
+        $("#enter").click(function() {
+            socket.send(JSON.stringify({
+                message: $("#username").val(),
+                action: "auth"
+            }));
+        });
+
+        $("#send").click(function() {
+            let message = $("#message").val();
+            socket.send(JSON.stringify({
+                message: message,
+                action: "send"
+            }));
+            $("#message").val('');
+        });
+
+
+        socket.addEventListener('message', function (event) {
+            let response = JSON.parse(event.data);
+
+            if (response.status === 'online') {
+                $("#online").html('');
+                $( response.data ).each(function( index, value) {
+                    $("#online").append("<li>"+value+"</li>");
+                });
+            } else if (response.status === 'new') {
+                let message = response.data;
+                $("#messages").append("<li><strong>"+message.date+" "+message.sender+":</strong> "+message.text+"</li>");
+            } else if (response.status === 'error') {
+                alert(response.data);
+            } else if (response.status === 'auth') {
+                $("#chat").removeClass('d-none');
+                $("#auth").addClass('d-none');
+            }
+            console.log('Message from server ', event.data);
+        });
+    });
+
+</script>
+
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
